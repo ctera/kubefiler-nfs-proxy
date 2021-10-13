@@ -1,0 +1,46 @@
+static_resources:
+  listeners:
+  - address:
+      socket_address:
+        address: 0.0.0.0
+        port_value: 22049
+    # listener_filters:
+    # - name: envoy.filters.listener.tls_inspector
+    #   typed_config: {}
+    filter_chains:
+    # - filter_chain_match:
+    #     transport_protocol: tls
+    - filters:
+      - name: envoy.filters.network.tcp_proxy
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
+          stat_prefix: tcp
+          cluster: nfs
+      # transport_socket:
+      #   name: envoy.transport_sockets.tls
+      #   typed_config:
+      #     "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext
+      #     require_client_certificate: True
+      #     common_tls_context:
+      #       tls_certificates:
+      #         certificate_chain:
+      #           filename: /etc/envoy/certs/envoy.crt
+      #         private_key:
+      #           filename: /etc/envoy/certs/envoy.key
+      #       validation_context:
+      #         trusted_ca:
+      #           filename: /etc/envoy/certs/ca.pem
+  clusters:
+  - name: nfs
+    connect_timeout: 0.25s
+    type: strict_dns
+    lb_policy: round_robin
+    load_assignment:
+      cluster_name: nfs
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: localhost
+                port_value: 2049
