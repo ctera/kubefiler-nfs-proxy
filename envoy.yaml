@@ -1,7 +1,9 @@
 static_resources:
   listeners:
-  - address:
+  - name: nfs_tcp
+    address:
       socket_address:
+        protocol: TCP
         address: 0.0.0.0
         port_value: 22049
     # listener_filters:
@@ -14,8 +16,8 @@ static_resources:
       - name: envoy.filters.network.tcp_proxy
         typed_config:
           "@type": type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
-          stat_prefix: tcp
-          cluster: nfs
+          stat_prefix: nfs_tcp
+          cluster: nfs_tcp
       # transport_socket:
       #   name: envoy.transport_sockets.tls
       #   typed_config:
@@ -30,17 +32,46 @@ static_resources:
       #       validation_context:
       #         trusted_ca:
       #           filename: /etc/envoy/certs/ca.pem
+  - name: nfs_udp
+    address:
+      socket_address:
+        protocol: UDP
+        address: 0.0.0.0
+        port_value: 22049
+    udp_listener_config:
+      downstream_socket_config:
+        max_rx_datagram_size: 9000
+    listener_filters:
+    - name: envoy.filters.udp_listener.udp_proxy
+      typed_config:
+        '@type': type.googleapis.com/envoy.extensions.filters.udp.udp_proxy.v3.UdpProxyConfig
+        stat_prefix: nfs_udp
+        cluster: nfs_udp
+        upstream_socket_config:
+          max_rx_datagram_size: 9000
   clusters:
-  - name: nfs
+  - name: nfs_tcp
     connect_timeout: 0.25s
     type: strict_dns
     lb_policy: round_robin
     load_assignment:
-      cluster_name: nfs
+      cluster_name: nfs_tcp
       endpoints:
       - lb_endpoints:
         - endpoint:
             address:
               socket_address:
-                address: localhost
+                address: 127.0.0.1
+                port_value: 2049
+  - name: nfs_udp
+    type: static
+    lb_policy: round_robin
+    load_assignment:
+      cluster_name: nfs_udp
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: 127.0.0.1
                 port_value: 2049
